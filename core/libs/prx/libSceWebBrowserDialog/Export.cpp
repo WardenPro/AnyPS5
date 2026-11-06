@@ -19,18 +19,6 @@ namespace {
 std::atomic<int> g_status{0};
 std::atomic<bool> g_open{false};
 
-constexpr int COMMON_DIALOG_STATUS_NONE = 0;
-constexpr int COMMON_DIALOG_STATUS_RUNNING = 2;
-constexpr int COMMON_DIALOG_STATUS_FINISHED = 3;
-constexpr int COMMON_DIALOG_RESULT_USER_CANCELED = 1;
-constexpr int COMMON_DIALOG_ERROR_NOT_INITIALIZED = static_cast<int>(0x80B80003u);
-constexpr int COMMON_DIALOG_ERROR_NOT_FINISHED = static_cast<int>(0x80B80005u);
-constexpr int COMMON_DIALOG_ERROR_INVALID_STATE = static_cast<int>(0x80B80006u);
-constexpr int COMMON_DIALOG_ERROR_BUSY = static_cast<int>(0x80B80007u);
-constexpr int COMMON_DIALOG_ERROR_NOT_RUNNING = static_cast<int>(0x80B8000Bu);
-constexpr int COMMON_DIALOG_ERROR_PARAMETER = static_cast<int>(0x80B8000Au);
-constexpr int COMMON_DIALOG_ERROR_ARG_NULL = static_cast<int>(0x80B8000Du);
-
 bool ReservedClear(const std::uint8_t (&reserved)[256]) {
     for (const auto byte : reserved)
         if (byte != 0) return false;
@@ -78,12 +66,12 @@ int APS5_VABI sceWebBrowserDialogClose(void) {
 
 int APS5_VABI sceWebBrowserDialogGetResult(WebBrowserDialogResult* result) {
     if (result == nullptr) return COMMON_DIALOG_ERROR_ARG_NULL;
-    if (std::any_of(std::begin(result->reserved), std::end(result->reserved), [](std::uint8_t value) { return value != 0; })) return COMMON_DIALOG_ERROR_PARAMETER;
+    if (std::any_of(std::begin(result->reserved), std::end(result->reserved), [](std::uint8_t value) { return value != 0; })) return COMMON_DIALOG_ERROR_INVALID_ARGUMENT;
     if (result->extended != nullptr) {
         const auto& extended = *result->extended;
-        if (extended.size != sizeof(extended)) return COMMON_DIALOG_ERROR_PARAMETER;
-        if (std::any_of(std::begin(extended.reserved0), std::end(extended.reserved0), [](std::uint8_t value) { return value != 0; })) return COMMON_DIALOG_ERROR_PARAMETER;
-        if (std::any_of(std::begin(extended.reserved1), std::end(extended.reserved1), [](std::uint8_t value) { return value != 0; })) return COMMON_DIALOG_ERROR_PARAMETER;
+        if (extended.size != sizeof(extended)) return COMMON_DIALOG_ERROR_INVALID_ARGUMENT;
+        if (std::any_of(std::begin(extended.reserved0), std::end(extended.reserved0), [](std::uint8_t value) { return value != 0; })) return COMMON_DIALOG_ERROR_INVALID_ARGUMENT;
+        if (std::any_of(std::begin(extended.reserved1), std::end(extended.reserved1), [](std::uint8_t value) { return value != 0; })) return COMMON_DIALOG_ERROR_INVALID_ARGUMENT;
     }
     const int status = g_status.load();
     if (status == COMMON_DIALOG_STATUS_NONE) return COMMON_DIALOG_ERROR_NOT_INITIALIZED;
@@ -119,7 +107,7 @@ int APS5_VABI sceWebBrowserDialogSetCookie(const WebBrowserDialogCookieParam* pa
     if (param == nullptr) return COMMON_DIALOG_ERROR_ARG_NULL;
     if (param->size != sizeof(WebBrowserDialogCookieParam) || !LengthWithin(param->address, 0x800) || !LengthWithin(param->cookie, 0x1000) ||
         !ReservedClear(param->reserved))
-        return COMMON_DIALOG_ERROR_PARAMETER;
+        return COMMON_DIALOG_ERROR_INVALID_ARGUMENT;
     return 0;
 }
 
@@ -127,16 +115,16 @@ int APS5_VABI sceWebBrowserDialogOpenForPredeterminedContent(const void* param, 
     const int status = g_status.load();
     if (status == COMMON_DIALOG_STATUS_NONE) return COMMON_DIALOG_ERROR_NOT_INITIALIZED;
     if (allowList == nullptr) return COMMON_DIALOG_ERROR_ARG_NULL;
-    if (allowList->size != sizeof(*allowList)) return COMMON_DIALOG_ERROR_PARAMETER;
+    if (allowList->size != sizeof(*allowList)) return COMMON_DIALOG_ERROR_INVALID_ARGUMENT;
     bool hasAddress = false;
     for (const char* address : allowList->addresses) {
         if (address == nullptr) continue;
         hasAddress = true;
         std::size_t length = 0;
         while (length < 256 && address[length] != '\0') ++length;
-        if (length == 0 || length == 256) return COMMON_DIALOG_ERROR_PARAMETER;
+        if (length == 0 || length == 256) return COMMON_DIALOG_ERROR_INVALID_ARGUMENT;
     }
-    if (!hasAddress || std::any_of(std::begin(allowList->reserved), std::end(allowList->reserved), [](std::uint8_t value) { return value != 0; })) return COMMON_DIALOG_ERROR_PARAMETER;
+    if (!hasAddress || std::any_of(std::begin(allowList->reserved), std::end(allowList->reserved), [](std::uint8_t value) { return value != 0; })) return COMMON_DIALOG_ERROR_INVALID_ARGUMENT;
     if (param == nullptr) return COMMON_DIALOG_ERROR_ARG_NULL;
     if (status == COMMON_DIALOG_STATUS_RUNNING) return COMMON_DIALOG_ERROR_BUSY;
     g_status = COMMON_DIALOG_STATUS_FINISHED;
@@ -149,7 +137,7 @@ int APS5_VABI sceWebBrowserDialogResetCookie(const WebBrowserDialogResetCookiePa
     if (g_status.load() == COMMON_DIALOG_STATUS_NONE) return COMMON_DIALOG_ERROR_NOT_INITIALIZED;
     if (param == nullptr) return COMMON_DIALOG_ERROR_ARG_NULL;
     if (g_open.load()) return COMMON_DIALOG_ERROR_INVALID_STATE;
-    if (param->size != sizeof(WebBrowserDialogResetCookieParam) || !ReservedClear(param->reserved)) return COMMON_DIALOG_ERROR_PARAMETER;
+    if (param->size != sizeof(WebBrowserDialogResetCookieParam) || !ReservedClear(param->reserved)) return COMMON_DIALOG_ERROR_INVALID_ARGUMENT;
     return 0;
 }
 

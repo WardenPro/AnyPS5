@@ -13,7 +13,7 @@ namespace {
 
 constexpr int StatusRunning = 2;
 constexpr int StatusFinished = 3;
-constexpr int ErrBusy = static_cast<int>(0x80B80007u);
+constexpr int ErrBusy = static_cast<int>(0x80B80008u);
 constexpr int ErrNotRunning = static_cast<int>(0x80B8000Bu);
 
 void Require(bool value, const char* what) {
