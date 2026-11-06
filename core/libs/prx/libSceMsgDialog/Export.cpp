@@ -1,4 +1,5 @@
 #include "prx/libSceMsgDialog/include/Api.hpp"
+#include "prx/libSceCommonDialog/CommonDialog.hpp"
 #include "prx/libSceMsgDialog/include/MsgDialogParam.hpp"
 #include "prx/libSceMsgDialog/include/MsgDialogRequest.hpp"
 #include "prx/libSceIme/include/ModalDialog.hpp"
@@ -22,7 +23,6 @@ constexpr int kStatusFinished = 3;
 
 constexpr int kErrOk = 0;
 constexpr int kErrNotInitialized = static_cast<int>(0x80B80003u);
-constexpr int kErrBusy = static_cast<int>(0x80B80007u);
 constexpr int kErrNotRunning = static_cast<int>(0x80B8000Bu);
 constexpr int kErrArgNull = static_cast<int>(0x80B8000Du);
 
@@ -91,7 +91,7 @@ int APS5_VABI sceMsgDialogTerminate(void) {
 int APS5_VABI sceMsgDialogOpen(const void* param) {
  if (param == nullptr) return kErrArgNull;
  std::lock_guard g(g_lock);
- if (g_status == kStatusRunning) return kErrBusy;
+ if (g_status == kStatusRunning) return COMMON_DIALOG_ERROR_BUSY;
  const MsgDialog::ParsedParam parsed = MsgDialog::ParseParam(param);
  Inspect(parsed);
  g_presented = Present(parsed);
